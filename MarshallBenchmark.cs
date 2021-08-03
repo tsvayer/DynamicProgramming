@@ -53,6 +53,11 @@ public class ReverseBench
     {
         var c = largeString.SpanReverse();
     }
+    [Benchmark]
+    public void StringCreateReverseTest()
+    {
+        var c = largeString.DirectReverse();
+    }
 }
 
 public static class ExtensionString
@@ -67,6 +72,8 @@ public static class ExtensionString
         // Allocate HGlobal memory for source and destination strings
         IntPtr sourcePtr = Marshal.StringToHGlobalUni(strValue);
         IntPtr destPtr = Marshal.StringToHGlobalUni(strValue);
+
+        unsafe { var bytes = new Span<byte>((byte*)sourcePtr, 1); }
 
         // The unsafe section where byte pointers are used.
         try
@@ -129,5 +136,23 @@ public static class ExtensionString
         Memory<char> spnStr = new Memory<char>(script.ToCharArray());
         spnStr.Span.Reverse<char>();
         return spnStr.ToString();
+    }
+
+    public static string DirectReverse(this string text)
+    {
+      if (text == null)
+        throw new NullReferenceException();
+
+      if (text == string.Empty)
+        return text;
+
+      return string.Create(text.Length, text, (output, context) =>
+      {
+        int length = context.Length - 1;
+        for (int i = length; i >= 0; i--)
+        {
+          output[length - i] = context[i];
+        }
+      });
     }
 }
